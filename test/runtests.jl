@@ -1,8 +1,6 @@
 using DelayMaps
 using Test
 
-f(2,1)
-
 @testset "DelayMaps.jl" begin
-    f(2,1)
+    @test f(2,1) == 5
 end
