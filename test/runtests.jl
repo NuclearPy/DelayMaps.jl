@@ -1,6 +1,8 @@
 using DelayMaps
 using Test
 
+f(2,1)
+
 @testset "DelayMaps.jl" begin
-    # Write your tests here.
+    f(2,1)
 end
