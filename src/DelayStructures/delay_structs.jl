@@ -13,7 +13,7 @@ const PHASE_SPACE_INTERVAL_LENGTH = PHASE_SPACE_INTERVAL_END - PHASE_SPACE_INTER
 """
     ExplicitDelayMap{T<:Function, S <: Function}
 
-Delay map associated to a DDE with one constant delay, for which delay maps may be written explicitly.
+Delay map associated to a DDE with one constant delay, for which delay maps may be written explicitly. This struct is callable.
 
 Fields:
 - vector_field :: T
@@ -25,7 +25,7 @@ Constructors:
 # Examples
 
 ```jldoctest
-julia> ExplicitDelayMap(sin)
+julia> ExplicitDelayMap(sin, cos)
 ExplicitDelayMap{typeof(sin), typeof(cos)}(sin, cos)
 ```
 """
@@ -34,12 +34,17 @@ struct ExplicitDelayMap{T <: Function, S <: Function} <: DelayMap
     derivative :: S
 end
 
-function (F::ExplicitDelayMap)(τ::Real, x::Sequence)
-    ∫fx = integrate(F.vector_field(x))
-    ∫fx = ∫fx - ∫fx(PHASE_SPACE_INTERVAL_START)
-    return project(x(PHASE_SPACE_INTERVAL_END) + τ * ∫fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
+# Solves a DDE with initial condition x as in the method-of-steps, translating time to [-1,1].
+function (F::ExplicitDelayMap)(x::Sequence, τ::Real)
+    ∫Fx = integrate(F.vector_field(x)); # ∫Fx = ∫Fx - ∫Fx(PHASE_SPACE_INTERVAL_START) <- include if not starting at -1
+    return project(x(PHASE_SPACE_INTERVAL_END) + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
 end
 
-function Jacobian(F::ExplicitDelayMap)(τ::Real, x::Sequence)
-    return "wip"
+# Jacobian matrix of the delay map projected onto a finite basis
+function Jacobian(F::ExplicitDelayMap, x::Sequence, τ::Real)
+    dFx = F.derivative(x); dFx = project(Multiplication(dFx), space(x), image(Multiplication(dFx), space(x)))
+    # E = project(Evaluation(PHASE_SPACE_INTERVAL_START), space(x), image(Multiplication(dFx), space(x)))
+    ∫ = integralMatrix(codomain(dFx)); # ∫ = ∫ - E * ∫ <- include if not starting at -1
+    E = project(Evaluation(1), space(x), codomain(∫))
+    return E + τ*∫*dFx
 end

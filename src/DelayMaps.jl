@@ -3,7 +3,7 @@ module DelayMaps
 using RadiiPolynomial
 
 include("DelayStructures/delay_structs.jl")
-    export DelayMap, ExplicitDelayMap
+    export DelayMap, ExplicitDelayMap, Jacobian
 
 include("rotation.jl")
     export f
