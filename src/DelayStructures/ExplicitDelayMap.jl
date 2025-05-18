@@ -37,8 +37,8 @@ function Jacobian(F :: ExplicitDelayMap, x :: Sequence{Chebyshev, Vector{S}}, τ
     dFx = F.derivative(x); dFx = project(Multiplication(dFx), space(x), image(Multiplication(dFx), space(x)))
     # E = project(Evaluation(PHASE_SPACE_INTERVAL_START), space(x), image(Multiplication(dFx), space(x)))
     ∫ = integralMatrix(codomain(dFx)); # ∫ = ∫ - E * ∫ <- include if not starting at -1
-    E = project(Evaluation(1), space(x), codomain(∫))
-    return E + τ * ∫ * dFx
+    E = project(Evaluation(PHASE_SPACE_INTERVAL_END), space(x), codomain(∫))
+    return E + (τ / PHASE_SPACE_INTERVAL_LENGTH) * ∫ * dFx 
 end
 
 # --- Truncated delay map on Chebyshev ⊗ Fourier basis ---
@@ -47,6 +47,14 @@ end
 function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}}}, S}, τ::Real) where S <: AbstractArray
     ∫Fx = Integral(1,0) * F.vector_field(x)
     return project(x(PHASE_SPACE_INTERVAL_END, nothing) + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
+end
+
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}}}, S}, τ::Real) where S <: AbstractArray
+    dfx = F.derivative(x)
+    dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
+    ∫ = project(Integral(1,0), codomain(dfx), image(Integral(1,0), codomain(dfx)))
+    E = project(Evaluation(PHASE_SPACE_INTERVAL_END, nothing), space(x), codomain(∫))
+    return project(E + τ*∫*dfx/PHASE_SPACE_INTERVAL_LENGTH, space(x), space(x))
 end
 
 # --- Truncated delay map on Chebyshev ⊗ Taylor basis ---
@@ -58,12 +66,29 @@ function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Taylor}}
     return project(x(PHASE_SPACE_INTERVAL_END, nothing) + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
 end
 
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Taylor}}, S}, τ::Real) where S <: AbstractArray
+    dfx = F.derivative(x)
+    dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
+    ∫ = project(Integral(1,0), codomain(dfx), image(Integral(1,0), codomain(dfx)))
+    E = project(Evaluation(PHASE_SPACE_INTERVAL_END, nothing), space(x), codomain(∫))
+    return project(E + τ*∫*dfx/PHASE_SPACE_INTERVAL_LENGTH, space(x), space(x))
+end
+
 # n-dimensional manifolds (n = Morse)
 function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where Morse
     T = Sequence{TensorSpace{Tuple{Chebyshev, Vararg{Taylor, Morse}}}, S}
     ∫Fx = Integral(1, Tuple(0 for n in 1:Morse)...) * F.vector_field(x)
     Evalx = Evaluation(PHASE_SPACE_INTERVAL_END, Tuple(nothing for n in 1:Morse)...) * x
     return convert(T, project(Evalx + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x)))
+end
+
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where Morse
+    T = LinearOperator{TensorSpace{Tuple{Chebyshev, Vararg{Taylor, Morse}}}, TensorSpace{Tuple{Chebyshev, Vararg{Taylor, Morse}}}, Matrix{eltype(S)}}
+    dfx = F.derivative(x)
+    dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
+    ∫ = project(Integral(1, Tuple(0 for n in 1:Morse)...), codomain(dfx), image(Integral(1, Tuple(0 for n in 1:Morse)...), codomain(dfx)))
+    E = project(Evaluation(PHASE_SPACE_INTERVAL_END, Tuple(nothing for n in 1:Morse)...), space(x), codomain(∫))
+    return convert(T, project(E + τ*∫*dfx/PHASE_SPACE_INTERVAL_LENGTH, space(x), space(x)))
 end
 
 # --- Truncated delay map on Chebyshev ⊗ Fourier ⊗ Taylor basis ---
@@ -75,9 +100,26 @@ function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{
     return project(x(PHASE_SPACE_INTERVAL_END, nothing, nothing) + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
 end
 
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Taylor}}, S}, τ::Real) where S <: AbstractArray
+    dfx = F.derivative(x)
+    dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
+    ∫ = project(Integral(1,0,0), codomain(dfx), image(Integral(1,0,0), codomain(dfx)))
+    E = project(Evaluation(PHASE_SPACE_INTERVAL_END, nothing, nothing), space(x), codomain(∫))
+    return project(E + τ*∫*dfx/PHASE_SPACE_INTERVAL_LENGTH, space(x), space(x))
+end
+
 function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where Morse
     T = Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, S}
     ∫Fx = Integral(1, 0, Tuple(0 for n in 1:Morse)...) * F.vector_field(x)
     Evalx = Evaluation(PHASE_SPACE_INTERVAL_END, nothing, Tuple(nothing for n in 1:Morse)...) * x
     return convert(T, project(Evalx + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x)))
+end
+
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where Morse
+    T = LinearOperator{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, Matrix{eltype(S)}}
+    dfx = F.derivative(x)
+    dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
+    ∫ = project(Integral(1, 0, Tuple(0 for n in 1:Morse)...), codomain(dfx), image(Integral(1, 0, Tuple(0 for n in 1:Morse)...), codomain(dfx)))
+    E = project(Evaluation(PHASE_SPACE_INTERVAL_END, nothing, Tuple(nothing for n in 1:Morse)...), space(x), codomain(∫))
+    return convert(T, project(E + τ*∫*dfx/PHASE_SPACE_INTERVAL_LENGTH, space(x), space(x)))
 end
