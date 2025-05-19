@@ -8,7 +8,10 @@ include("DelayStructures/delay_structs.jl")
 include("DelayStructures/ExplicitDelayMap.jl")
     export ExplicitDelayMap
 
-include("rotation.jl")
-    export f
+include("Orbits/orbits.jl")
+    export transients, coefSamples, evalSamples
+
+include("Orbits/rotation.jl")
+    export birkhoffWeight, rotationNumberByEval, rotationNumberByCoef
 
 end
