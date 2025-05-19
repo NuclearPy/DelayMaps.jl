@@ -44,12 +44,12 @@ end
 # --- Truncated delay map on Chebyshev ⊗ Fourier basis ---
 # used for computing periodic orbits of DDE // quasi-periodic orbits of delay map
 
-function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}}}, S}, τ::Real) where S <: AbstractArray
+function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}}}, S}, τ::Real) where S <: AbstractArray where R <: Real
     ∫Fx = Integral(1,0) * F.vector_field(x)
     return project(x(PHASE_SPACE_INTERVAL_END, nothing) + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
 end
 
-function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}}}, S}, τ::Real) where S <: AbstractArray
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}}}, S}, τ::Real) where S <: AbstractArray where R <: Real
     dfx = F.derivative(x)
     dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
     ∫ = project(Integral(1,0), codomain(dfx), image(Integral(1,0), codomain(dfx)))
@@ -95,12 +95,12 @@ end
 # used for computing manifolds at periodic orbits of DDE
 
 
-function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Taylor}}, S}, τ::Real) where S <: AbstractArray
+function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}, Taylor}}, S}, τ::Real) where S <: AbstractArray where R <: Real
     ∫Fx = Integral(1,0,0) * F.vector_field(x)
     return project(x(PHASE_SPACE_INTERVAL_END, nothing, nothing) + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x))
 end
 
-function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Taylor}}, S}, τ::Real) where S <: AbstractArray
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}, Taylor}}, S}, τ::Real) where S <: AbstractArray
     dfx = F.derivative(x)
     dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
     ∫ = project(Integral(1,0,0), codomain(dfx), image(Integral(1,0,0), codomain(dfx)))
@@ -108,15 +108,15 @@ function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, 
     return project(E + τ*∫*dfx/PHASE_SPACE_INTERVAL_LENGTH, space(x), space(x))
 end
 
-function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where Morse
-    T = Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, S}
+function (F::ExplicitDelayMap)(x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where R <: Real where Morse
+    T = Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}, Vararg{Taylor, Morse}}}, S}
     ∫Fx = Integral(1, 0, Tuple(0 for n in 1:Morse)...) * F.vector_field(x)
     Evalx = Evaluation(PHASE_SPACE_INTERVAL_END, nothing, Tuple(nothing for n in 1:Morse)...) * x
     return convert(T, project(Evalx + τ * ∫Fx / PHASE_SPACE_INTERVAL_LENGTH, space(x)))
 end
 
-function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where Morse
-    T = LinearOperator{TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, TensorSpace{Tuple{Chebyshev, Fourier{Float64}, Vararg{Taylor, Morse}}}, Matrix{eltype(S)}}
+function Jacobian(F::ExplicitDelayMap, x::Sequence{TensorSpace{Tuple{Chebyshev, Fourier{R}, Vararg{Taylor, Morse}}}, S}, τ::Real) where S <: AbstractArray where R <: Real where Morse
+    T = LinearOperator{TensorSpace{Tuple{Chebyshev, Fourier{R}, Vararg{Taylor, Morse}}}, TensorSpace{Tuple{Chebyshev, Fourier{R}, Vararg{Taylor, Morse}}}, Matrix{eltype(S)}}
     dfx = F.derivative(x)
     dfx = project(Multiplication(dfx), space(x), image(Multiplication(dfx), space(x)))
     ∫ = project(Integral(1, 0, Tuple(0 for n in 1:Morse)...), codomain(dfx), image(Integral(1, 0, Tuple(0 for n in 1:Morse)...), codomain(dfx)))
